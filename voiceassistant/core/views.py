@@ -5,10 +5,13 @@ from rest_framework import generics
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from .models import Conversation, Message
-from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer
+from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, TextToSpeechSerializer
 from core.chatgpt import get_chat_response
 from core.voice import get_text_from_audio
 from googletrans import Translator
+from gtts import gTTS
+from io import BytesIO
+import base64
 
 class ChatbotTextView(APIView):
     parser_classes = [JSONParser]
@@ -195,7 +198,7 @@ class ConversationListView(generics.ListAPIView):
         }
         return Response(response_data)
 
-    
+
 class MessageListView(APIView):
     parser_classes = [JSONParser]
     
@@ -213,3 +216,28 @@ class MessageListView(APIView):
             'messages': serialized_data,
         }
         return Response(response_data)
+    
+
+class TextToSpeechView(APIView):
+    parser_classes = [JSONParser]
+    
+    def post(self, request):
+        serializer = TextToSpeechSerializer(data=request.data)
+        if serializer.is_valid():
+            text = serializer.validated_data["text"]
+            language = serializer.validated_data["language"]
+
+            # Convert text to speech using gTTS
+            tts = gTTS(text= text, lang=language)
+            
+            # Save the audio as bytes in-memory
+            audio_buffer = BytesIO()
+            tts.write_to_fp(audio_buffer)
+            audio_buffer.seek(0)
+
+            # Encode the audio as Base64
+            audio_data = base64.b64encode(audio_buffer.read()).decode("utf-8")
+
+            return Response({"audio_base64": audio_data}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

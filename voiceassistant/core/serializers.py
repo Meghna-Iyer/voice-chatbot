@@ -65,3 +65,7 @@ class MessageListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = '__all__' 
+
+class TextToSpeechSerializer(serializers.Serializer):
+    text = serializers.CharField()
+    language = serializers.CharField()
