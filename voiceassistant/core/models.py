@@ -7,8 +7,10 @@ from django_extensions.db.models import (
 )
 from user.models import User
 
+
 class Conversation(Model, TimeStampedModel, ActivatorModel, TitleSlugDescriptionModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
 
 class Message(Model, TimeStampedModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)

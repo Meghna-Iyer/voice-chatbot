@@ -6,20 +6,65 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from .models import Conversation, Message
 from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, TextToSpeechSerializer
-from core.chatgpt import get_chat_response
-from core.voice import get_text_from_audio
-from googletrans import Translator
-from gtts import gTTS
-from io import BytesIO
-import base64
+from core.chatgpt import getChatGptResponse
+from core.voice import getTextFromAudio, getAudioFromText
+from core.language import translate
 
-class ChatbotTextView(APIView):
+class ChatbotBaseView(APIView):
+    
+    def getOrCreateConversation(self, conversation_id, user_id):
+        if conversation_id:
+            try:
+                conversation = Conversation.objects.get(id=conversation_id)
+            except Conversation.DoesNotExist:
+                raise Exception('Conversation not found')
+        else:
+            try:
+                conversation = Conversation.objects.create(user_id=user_id)
+            except IntegrityError as e:
+                raise Exception('User not found')
+    
+        return conversation
+
+
+    def create_and_add_message(self, conversation, message_type, content, message_user_type, user_id, messages, reference=None):
+        message_data = {
+            'conversation_id': conversation.id,
+            'type': message_type,
+            'content': content,
+            'reference': reference,
+            'message_user_type': message_user_type,
+            'user_id': user_id
+        }
+
+        # text messages would not contain reference
+        if reference is None:
+            del message_data['reference']
+        
+        message_serializer = MessageSerializer(data=message_data)
+
+        if message_serializer.is_valid():
+            output = message_serializer.save()
+            validated_data = message_serializer.validated_data
+            
+            # save url in ref
+            if validated_data.get("reference"):
+                validated_data["reference"] = output.reference.url
+            
+            messages.append(validated_data)
+        else:
+            print(message_serializer.errors)
+            raise Exception(message_serializer.errors)
+
+
+class ChatbotTextView(ChatbotBaseView):
     parser_classes = [JSONParser]
 
     def post(self, request):
         serializer = ConversationTextSerializer(data=request.data, context = {'request': request})
 
         if serializer.is_valid():
+            
             user_id = serializer.validated_data['user_id']
             input_text = serializer.validated_data['input_text']
             conversation_id = serializer.validated_data.get('conversation_id')
@@ -28,70 +73,37 @@ class ChatbotTextView(APIView):
             message_user_type = 1 #user
             message_type = 1 #text
 
-            # Check if a conversation with the provided ID exists; if not, create a new one
-            if conversation_id:
-                try:
-                    conversation = Conversation.objects.get(id=conversation_id)
-                except Conversation.DoesNotExist:
-                    return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
-            else:
-                try:
-                    conversation = Conversation.objects.create(user_id=user_id)
-                except IntegrityError as e:
-                    return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
 
-            messages = []
+                conversation = self.getOrCreateConversation(conversation_id, user_id)
 
-            # Create a new message within the conversation
-            message_data = {
-                'conversation_id': conversation.id,
-                'type': message_type,
-                'content': input_text,
-                'message_user_type': message_user_type,
-                'user_id': user_id
-            }
-            message_serializer = MessageSerializer(data=message_data)
+                messages = []
 
-            # Check if the message data is valid according to the MessageSerializer
-            if message_serializer.is_valid():
-                message_serializer.save()
-                messages.append(message_serializer.validated_data)
+                self.create_and_add_message(conversation, message_type, input_text, message_user_type, user_id, messages)
 
-                assistant_reply = get_chat_response(input_text)
+                assistant_reply = getChatGptResponse(input_text)
 
-                translator = Translator()
-                translated_response = translator.translate(assistant_reply, dest=language_pref).text
+                translated_response = translate(assistant_reply, dest=language_pref)
 
                 message_user_type = 2 #Bot
+                message_type = 1 #text
 
-                # Create a response message and save it to the database
+                self.create_and_add_message(conversation, message_type, translated_response, message_user_type, user_id, messages)
+
                 response_data = {
                     'conversation_id': conversation.id,
-                    'type': message_type,
-                    'content': translated_response,
-                    'message_user_type': message_user_type, 
-                    'user_id': user_id
+                    'messages': messages
                 }
-                response_serializer = MessageSerializer(data=response_data)
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
-                # Check if the response data is valid according to the MessageSerializer
-                if response_serializer.is_valid():
-                    response_serializer.save()
-                    messages.append(response_serializer.validated_data)
-                    response_data = {
-                        'conversation_id': conversation.id,
-                        'messages': messages 
-                    }
-                    return Response(response_data, status=status.HTTP_201_CREATED)
-                else:
-                    return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response(message_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-class ChatbotVoiceView(APIView):
+class ChatbotVoiceView(ChatbotBaseView):
     parser_classes = [MultiPartParser]
 
     def post(self, request):
@@ -108,78 +120,36 @@ class ChatbotVoiceView(APIView):
             message_user_type = 1 #user
             message_type = 2 #audio
 
-            # Check if a conversation with the provided ID exists; if not, create a new one
-            if conversation_id:
-                try:
-                    conversation = Conversation.objects.get(id=conversation_id)
-                except Conversation.DoesNotExist:
-                    return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
-            else:
-                try:
-                    conversation = Conversation.objects.create(user_id=user_id)
-                except IntegrityError as e:
-                    return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
+            conversation = self.getOrCreateConversation(conversation_id, user_id)
 
             messages = []
 
-            # Create a new message within the conversation
-            message_data = {
-                'conversation_id': conversation.id,
-                'type': message_type,
-                'content': audio_name,
-                'reference': audio,
-                'message_user_type': message_user_type,
-                'user_id': user_id
-            }
-            print(message_data)
-            message_serializer = MessageSerializer(data=message_data)
+            try:
+                self.create_and_add_message(conversation, message_type, audio_name, message_user_type, user_id, messages, audio)
 
-            # Check if the message data is valid according to the MessageSerializer
-            if message_serializer.is_valid():
-                output = message_serializer.save()
-                validated_data = message_serializer.validated_data
-                validated_data["reference"] = output.reference.url
-                print(validated_data)
-                messages.append(validated_data)
+                input_text = getTextFromAudio(messages[0]["reference"])['text']
 
-                input_text = get_text_from_audio(validated_data["reference"])['text']
                 print(input_text)
-                assistant_reply = get_chat_response(input_text)
-                print(assistant_reply)
+                assistant_reply = getChatGptResponse(input_text)
 
-                translator = Translator()
-                translated_response = translator.translate(assistant_reply, dest=language_pref).text
+                translated_response = translate(assistant_reply, dest=language_pref)
 
                 message_type = 1 #text
                 message_user_type = 2 #Bot
 
-                # Create a response message and save it to the database
+                self.create_and_add_message(conversation, message_type, translated_response, message_user_type, user_id, messages)
+
                 response_data = {
                     'conversation_id': conversation.id,
-                    'type': message_type,
-                    'content': translated_response,
-                    'message_user_type': message_user_type, 
-                    'user_id': user_id
+                    'messages': messages
                 }
-                response_serializer = MessageSerializer(data=response_data)
+                return Response(response_data, status=status.HTTP_201_CREATED)
 
-                # Check if the response data is valid according to the MessageSerializer
-                if response_serializer.is_valid():
-                    output = response_serializer.save()
-                    validated_data = response_serializer.validated_data
-                    messages.append(validated_data)
-                    response_data = {
-                        'conversation_id': conversation.id,
-                        'messages': messages 
-                    }
-                    return Response(response_data, status=status.HTTP_201_CREATED)
-                else:
-                    return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response(message_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
 
 class ConversationListView(generics.ListAPIView):
     parser_classes = [JSONParser]
@@ -216,27 +186,19 @@ class MessageListView(APIView):
             'messages': serialized_data,
         }
         return Response(response_data)
-    
+  
 
 class TextToSpeechView(APIView):
     parser_classes = [JSONParser]
     
     def post(self, request):
         serializer = TextToSpeechSerializer(data=request.data)
+        
         if serializer.is_valid():
             text = serializer.validated_data["text"]
             language = serializer.validated_data["language"]
 
-            # Convert text to speech using gTTS
-            tts = gTTS(text= text, lang=language)
-            
-            # Save the audio as bytes in-memory
-            audio_buffer = BytesIO()
-            tts.write_to_fp(audio_buffer)
-            audio_buffer.seek(0)
-
-            # Encode the audio as Base64
-            audio_data = base64.b64encode(audio_buffer.read()).decode("utf-8")
+            audio_data = getAudioFromText(text=text, language=language)
 
             return Response({"audio_base64": audio_data}, status=status.HTTP_200_OK)
         else:

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from .models import Conversation, Message
 
+
 class ConversationTextSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(default=uuid.uuid4)
     input_text = serializers.CharField()
@@ -32,10 +33,12 @@ class ConversationVoiceSerializer(serializers.Serializer):
         model = Conversation
         fields = '__all__'
 
+
 class ConversationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = '__all__'
+
 
 class MessageSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(default=uuid.uuid4)
@@ -53,18 +56,21 @@ class MessageSerializer(serializers.Serializer):
         instance = Message(**validated_data)
         instance.save()
         return instance
-    
+
+
 class FileFieldURL(serializers.FileField):
     def to_representation(self, value):
         if value:
             return value.url
         return None
 
+
 class MessageListSerializer(serializers.ModelSerializer):
     reference = FileFieldURL()
     class Meta:
         model = Message
         fields = '__all__' 
+
 
 class TextToSpeechSerializer(serializers.Serializer):
     text = serializers.CharField()

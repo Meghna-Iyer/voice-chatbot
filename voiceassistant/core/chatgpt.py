@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
-def get_chat_response(input_text):
+def getChatGptResponse(input_text):
     # todo : need to get chathistory    
     messages = [
                         {"role": "system", "content": "You are a helpful assistant that provides concise answers."},
