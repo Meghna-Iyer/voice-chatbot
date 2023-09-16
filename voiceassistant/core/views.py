@@ -1,10 +1,11 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from .models import Conversation, Message
-from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer
+from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer
 from core.chatgpt import get_chat_response
 from core.voice import get_text_from_audio
 from googletrans import Translator
@@ -175,3 +176,40 @@ class ChatbotVoiceView(APIView):
                 return Response(message_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class ConversationListView(generics.ListAPIView):
+    parser_classes = [JSONParser]
+    serializer_class = ConversationListSerializer
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id'] 
+        return Conversation.objects.filter(user_id=user_id)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        conversations = serializer.data
+        response_data = {
+            "conversations": conversations
+        }
+        return Response(response_data)
+
+    
+class MessageListView(APIView):
+    parser_classes = [JSONParser]
+    
+    def get(self, request, conversation_id):
+        messages = Message.objects.filter(conversation__id=conversation_id)
+        serializer = MessageListSerializer(messages, many=True)
+        serialized_data = []
+        for message in serializer.data:
+            if message['reference']:
+                message['reference'] = request.build_absolute_uri(message['reference'])
+
+            serialized_data.append(message)
+
+        response_data = {
+            'messages': serialized_data,
+        }
+        return Response(response_data)

@@ -32,6 +32,10 @@ class ConversationVoiceSerializer(serializers.Serializer):
         model = Conversation
         fields = '__all__'
 
+class ConversationListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conversation
+        fields = '__all__'
 
 class MessageSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(default=uuid.uuid4)
@@ -48,4 +52,16 @@ class MessageSerializer(serializers.Serializer):
     def create(self, validated_data):
         instance = Message(**validated_data)
         instance.save()
-        return instance   
+        return instance
+    
+class FileFieldURL(serializers.FileField):
+    def to_representation(self, value):
+        if value:
+            return value.url
+        return None
+
+class MessageListSerializer(serializers.ModelSerializer):
+    reference = FileFieldURL()
+    class Meta:
+        model = Message
+        fields = '__all__' 
