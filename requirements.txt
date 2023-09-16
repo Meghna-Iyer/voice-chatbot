@@ -12,3 +12,5 @@ tzdata==2022.6
 psycopg2==2.9.7
 googletrans==4.0.0-rc1
 openai=0.28.0
+openai-whisper==20230314
+ffmpeg-python==0.2.0

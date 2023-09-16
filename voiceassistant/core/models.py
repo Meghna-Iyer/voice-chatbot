@@ -14,5 +14,6 @@ class Message(Model, TimeStampedModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     type = models.PositiveSmallIntegerField()
     content = models.TextField()
+    reference = models.FileField(upload_to="audio/", blank=True)
     message_user_type = models.PositiveSmallIntegerField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
