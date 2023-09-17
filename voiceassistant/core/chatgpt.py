@@ -4,7 +4,6 @@ import os
 load_dotenv()
 
 def getChatGptResponse(input_text):
-    # todo : need to get chathistory    
     messages = [
                         {"role": "system", "content": "You are a helpful assistant that provides concise answers."},
                         {"role": "user", "content": input_text},
