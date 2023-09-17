@@ -10,6 +10,7 @@ from .serializers import ConversationTextSerializer, ConversationVoiceSerializer
 from core.chatgpt import getChatGptResponse
 from core.voice import getTextFromAudio, getAudioFromText
 from core.language import translate
+from core.enums import MessageType, MessageUserType
 
 class ChatbotBaseView(APIView):
     
@@ -51,14 +52,9 @@ class ChatbotBaseView(APIView):
         message_serializer = MessageSerializer(data=message_data)
 
         if message_serializer.is_valid():
-            output = message_serializer.save()
-            validated_data = message_serializer.validated_data
-            
-            # save url in ref
-            if validated_data.get("reference"):
-                validated_data["reference"] = output.reference.url
-            
-            messages.append(validated_data)
+            message_serializer.save()
+            data = message_serializer.data
+            messages.append(data)
         else:
             print(message_serializer.errors)
             raise Exception(message_serializer.errors)
@@ -79,8 +75,8 @@ class ChatbotTextView(ChatbotBaseView):
             conversation_id = serializer.validated_data.get('conversation_id')
             language_pref = user.lang_preference
 
-            message_user_type = 1 #user
-            message_type = 1 #text
+            message_user_type = MessageUserType.USER.value
+            message_type = MessageType.TEXT.value
 
             try:
 
@@ -94,8 +90,8 @@ class ChatbotTextView(ChatbotBaseView):
 
                 translated_response = translate(assistant_reply, dest=language_pref)
 
-                message_user_type = 2 #Bot
-                message_type = 1 #text
+                message_user_type = MessageUserType.BOT.value
+                message_type = MessageType.TEXT.value
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
@@ -128,8 +124,8 @@ class ChatbotVoiceView(ChatbotBaseView):
             language_pref = user.lang_preference
             audio_name = audio.name
 
-            message_user_type = 1 #user
-            message_type = 2 #audio
+            message_user_type = MessageUserType.USER.value
+            message_type = MessageType.AUDIO.value
 
             conversation = self.getOrCreateConversation(conversation_id, user)
 
@@ -145,8 +141,8 @@ class ChatbotVoiceView(ChatbotBaseView):
 
                 translated_response = translate(assistant_reply, dest=language_pref)
 
-                message_type = 1 #text
-                message_user_type = 2 #Bot
+                message_user_type = MessageUserType.BOT.value
+                message_type = MessageType.TEXT.value
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
@@ -194,11 +190,6 @@ class MessageListView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         messages = serializer.data
-
-        # Modify the reference URLs if necessary
-        for message in messages:
-            if message['reference']:
-                message['reference'] = request.build_absolute_uri(message['reference'])
 
         response_data = {
             'messages': messages,

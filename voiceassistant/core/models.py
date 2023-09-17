@@ -6,6 +6,7 @@ from django_extensions.db.models import (
     TitleSlugDescriptionModel
 )
 from user.models import User
+from core.enums import MessageType, MessageUserType
 
 
 class Conversation(Model, TimeStampedModel, ActivatorModel, TitleSlugDescriptionModel):
@@ -14,8 +15,8 @@ class Conversation(Model, TimeStampedModel, ActivatorModel, TitleSlugDescription
 
 class Message(Model, TimeStampedModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
-    type = models.PositiveSmallIntegerField()
+    type = models.PositiveSmallIntegerField(choices=[(m.value, m.name) for m in MessageType])
     content = models.TextField()
     reference = models.FileField(upload_to="audio/", blank=True)
-    message_user_type = models.PositiveSmallIntegerField()
+    message_user_type = models.PositiveSmallIntegerField(choices=[(u.value, u.name) for u in MessageUserType])
     user = models.ForeignKey(User, on_delete=models.CASCADE)

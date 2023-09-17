@@ -2,7 +2,7 @@ import uuid
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from .models import Conversation, Message
-
+from core.enums import MessageType, MessageUserType
 
 class ConversationTextSerializer(serializers.Serializer):
     input_text = serializers.CharField()
@@ -39,9 +39,9 @@ class MessageSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(default=uuid.uuid4)
     conversation_id = serializers.UUIDField(default=uuid.uuid4)
     content = serializers.CharField()
-    type = serializers.IntegerField()
+    type = serializers.ChoiceField(choices=[(m.value, m.name) for m in MessageType])
+    message_user_type = serializers.ChoiceField(choices=[(u.value, u.name) for u in MessageUserType])
     reference = serializers.FileField(required=False)
-    message_user_type = serializers.IntegerField()
 
     class Meta:
         model = Message
@@ -51,20 +51,33 @@ class MessageSerializer(serializers.Serializer):
         instance = Message(**validated_data)
         instance.save()
         return instance
-
-
-class FileFieldURL(serializers.FileField):
-    def to_representation(self, value):
-        if value:
-            return value.url
-        return None
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['type'] = MessageType(instance.type).name
+        representation['message_user_type'] = MessageUserType(instance.message_user_type).name
+        if 'reference' in representation and instance.reference:
+            representation['reference'] = instance.reference.url
+        return representation
 
 
 class MessageListSerializer(serializers.ModelSerializer):
-    reference = FileFieldURL()
+    reference = serializers.SerializerMethodField()
+
     class Meta:
         model = Message
-        fields = '__all__' 
+        fields = '__all__'
+
+    def get_reference(self, obj):
+        if obj.reference:
+            return obj.reference.url
+        return None
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['type'] = MessageType(instance.type).name
+        representation['message_user_type'] = MessageUserType(instance.message_user_type).name
+        return representation
 
 
 class TextToSpeechSerializer(serializers.Serializer):
