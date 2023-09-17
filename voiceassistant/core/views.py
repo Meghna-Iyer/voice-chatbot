@@ -2,6 +2,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from .models import Conversation, Message
@@ -59,6 +62,7 @@ class ChatbotBaseView(APIView):
 
 class ChatbotTextView(ChatbotBaseView):
     parser_classes = [JSONParser]
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         serializer = ConversationTextSerializer(data=request.data, context = {'request': request})
@@ -105,6 +109,7 @@ class ChatbotTextView(ChatbotBaseView):
 
 class ChatbotVoiceView(ChatbotBaseView):
     parser_classes = [MultiPartParser]
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         serializer = ConversationVoiceSerializer(data=request.data, context = {'request': request})
@@ -154,6 +159,7 @@ class ChatbotVoiceView(ChatbotBaseView):
 class ConversationListView(generics.ListAPIView):
     parser_classes = [JSONParser]
     serializer_class = ConversationListSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user_id = self.kwargs['user_id'] 
@@ -169,27 +175,34 @@ class ConversationListView(generics.ListAPIView):
         return Response(response_data)
 
 
-class MessageListView(APIView):
+class MessageListView(generics.ListAPIView):
     parser_classes = [JSONParser]
-    
-    def get(self, request, conversation_id):
-        messages = Message.objects.filter(conversation__id=conversation_id)
-        serializer = MessageListSerializer(messages, many=True)
-        serialized_data = []
-        for message in serializer.data:
+    serializer_class = MessageListSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        conversation_id = self.kwargs['conversation_id']
+        return Message.objects.filter(conversation__id=conversation_id)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        messages = serializer.data
+
+        # Modify the reference URLs if necessary
+        for message in messages:
             if message['reference']:
                 message['reference'] = request.build_absolute_uri(message['reference'])
 
-            serialized_data.append(message)
-
         response_data = {
-            'messages': serialized_data,
+            'messages': messages,
         }
         return Response(response_data)
   
 
 class TextToSpeechView(APIView):
     parser_classes = [JSONParser]
+    permission_classes = (IsAuthenticated,)
     
     def post(self, request):
         serializer = TextToSpeechSerializer(data=request.data)
