@@ -5,7 +5,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
-from .models import Conversation, Message
+from .models import Conversation, Message, User
 from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, TextToSpeechSerializer
 from core.chatgpt import getChatGptResponse
 from core.voice import getTextFromAudio, getAudioFromText
@@ -13,7 +13,7 @@ from core.language import translate
 
 class ChatbotBaseView(APIView):
     
-    def getOrCreateConversation(self, conversation_id, user_id):
+    def getOrCreateConversation(self, conversation_id, user):
         if conversation_id:
             try:
                 conversation = Conversation.objects.get(id=conversation_id)
@@ -21,14 +21,20 @@ class ChatbotBaseView(APIView):
                 raise Exception('Conversation not found')
         else:
             try:
-                conversation = Conversation.objects.create(user_id=user_id)
+                title = "Conversation With " + user.first_name
+                conversation = Conversation.objects.create(user_id=user.id, title=title)
             except IntegrityError as e:
                 raise Exception('User not found')
     
         return conversation
 
 
-    def create_and_add_message(self, conversation, message_type, content, message_user_type, user_id, messages, reference=None):
+    def getUser(self, user_id):
+        user = User.objects.get(id=user_id)
+        return user
+
+
+    def createAndAddMessage(self, conversation, message_type, content, message_user_type, user_id, messages, reference=None):
         message_data = {
             'conversation_id': conversation.id,
             'type': message_type,
@@ -67,21 +73,22 @@ class ChatbotTextView(ChatbotBaseView):
 
         if serializer.is_valid():
             
-            user_id = serializer.validated_data['user_id']
+            user_id = self.request.user.id
+            user = self.getUser(user_id)
             input_text = serializer.validated_data['input_text']
             conversation_id = serializer.validated_data.get('conversation_id')
-            language_pref = serializer.validated_data['language']
+            language_pref = user.lang_preference
 
             message_user_type = 1 #user
             message_type = 1 #text
 
             try:
 
-                conversation = self.getOrCreateConversation(conversation_id, user_id)
+                conversation = self.getOrCreateConversation(conversation_id, user)
 
                 messages = []
 
-                self.create_and_add_message(conversation, message_type, input_text, message_user_type, user_id, messages)
+                self.createAndAddMessage(conversation, message_type, input_text, message_user_type, user_id, messages)
 
                 assistant_reply = getChatGptResponse(input_text)
 
@@ -90,7 +97,7 @@ class ChatbotTextView(ChatbotBaseView):
                 message_user_type = 2 #Bot
                 message_type = 1 #text
 
-                self.create_and_add_message(conversation, message_type, translated_response, message_user_type, user_id, messages)
+                self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
                 response_data = {
                     'conversation_id': conversation.id,
@@ -114,21 +121,22 @@ class ChatbotVoiceView(ChatbotBaseView):
 
         if serializer.is_valid():
 
+            user_id = self.request.user.id
+            user = self.getUser(user_id)
             audio = serializer.validated_data['audio']
-            user_id = serializer.validated_data['user_id']
             conversation_id = serializer.validated_data.get('conversation_id')
-            language_pref = serializer.validated_data['language']
+            language_pref = user.lang_preference
             audio_name = audio.name
 
             message_user_type = 1 #user
             message_type = 2 #audio
 
-            conversation = self.getOrCreateConversation(conversation_id, user_id)
+            conversation = self.getOrCreateConversation(conversation_id, user)
 
             messages = []
 
             try:
-                self.create_and_add_message(conversation, message_type, audio_name, message_user_type, user_id, messages, audio)
+                self.createAndAddMessage(conversation, message_type, audio_name, message_user_type, user_id, messages, audio)
 
                 input_text = getTextFromAudio(messages[0]["reference"])['text']
 
@@ -140,7 +148,7 @@ class ChatbotVoiceView(ChatbotBaseView):
                 message_type = 1 #text
                 message_user_type = 2 #Bot
 
-                self.create_and_add_message(conversation, message_type, translated_response, message_user_type, user_id, messages)
+                self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
                 response_data = {
                     'conversation_id': conversation.id,
@@ -160,7 +168,7 @@ class ConversationListView(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        user_id = self.kwargs['user_id'] 
+        user_id = self.request.user.id
         return Conversation.objects.filter(user_id=user_id)
     
     def list(self, request, *args, **kwargs):
@@ -198,7 +206,7 @@ class MessageListView(generics.ListAPIView):
         return Response(response_data)
   
 
-class TextToSpeechView(APIView):
+class TextToSpeechView(ChatbotBaseView):
     parser_classes = [JSONParser]
     permission_classes = (IsAuthenticated,)
     
@@ -207,7 +215,7 @@ class TextToSpeechView(APIView):
         
         if serializer.is_valid():
             text = serializer.validated_data["text"]
-            language = serializer.validated_data["language"]
+            language = self.getUser(self.request.user.id).lang_preference
 
             audio_data = getAudioFromText(text=text, language=language)
 

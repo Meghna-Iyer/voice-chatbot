@@ -10,7 +10,7 @@ app_name = 'core'
 urlpatterns = [
     path('chatbot/text', ChatbotTextView.as_view(), name='chatbot-text'),
     path('chatbot/voice', ChatbotVoiceView.as_view(), name='chatbot-voice'),
-    path('conversations/<uuid:user_id>/', ConversationListView.as_view(), name='conversation-list'),
+    path('conversations/', ConversationListView.as_view(), name='conversation-list'),
     path('messages/<uuid:conversation_id>/', MessageListView.as_view(), name='message-list'),
     path("text-to-speech/", TextToSpeechView.as_view(), name="text-to-speech"),
 ]
