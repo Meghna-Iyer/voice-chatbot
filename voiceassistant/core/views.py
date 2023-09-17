@@ -5,6 +5,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
+from django.db.models import F
 from .models import Conversation, Message, User
 from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, TextToSpeechSerializer
 from core.chatgpt import getChatGptResponse
@@ -165,7 +166,7 @@ class ConversationListView(generics.ListAPIView):
 
     def get_queryset(self):
         user_id = self.request.user.id
-        return Conversation.objects.filter(user_id=user_id)
+        return Conversation.objects.filter(user_id=user_id).order_by(F('created').desc())
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -184,7 +185,7 @@ class MessageListView(generics.ListAPIView):
 
     def get_queryset(self):
         conversation_id = self.kwargs['conversation_id']
-        return Message.objects.filter(conversation__id=conversation_id)
+        return Message.objects.filter(conversation__id=conversation_id).order_by(F('created').desc())
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
