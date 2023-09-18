@@ -7,8 +7,8 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from django.db.models import F
 from .models import Conversation, Message, User
-from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, TextToSpeechSerializer
-from core.chatgpt import getChatGptResponse
+from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, ConversationUpdateSerializer, TextToSpeechSerializer
+from core.chatgpt import getChatGptResponse, getConversationTitle
 from core.voice import getTextFromAudio, getAudioFromText
 from core.language import translate
 from core.enums import MessageType, MessageUserType
@@ -19,17 +19,26 @@ class ChatbotBaseView(APIView):
         if conversation_id:
             try:
                 conversation = Conversation.objects.get(id=conversation_id)
+                isNew = False
             except Conversation.DoesNotExist:
                 raise Exception('Conversation not found')
         else:
             try:
-                title = "Conversation With " + user.first_name
-                conversation = Conversation.objects.create(user_id=user.id, title=title)
+                conversation = Conversation.objects.create(user_id=user.id)
+                isNew = True;
             except IntegrityError as e:
                 raise Exception('User not found')
     
-        return conversation
+        return conversation, isNew
 
+    def getUpdatedConversation(self, conversation, user_id, text, shouldAutoUpdateTitle):
+        
+        if shouldAutoUpdateTitle:
+            title = getConversationTitle(text)
+            Conversation.objects.filter(id=conversation.id,user_id=user_id).update(title=title)
+            conversation.title = title
+
+        return conversation
 
     def getUser(self, user_id):
         user = User.objects.get(id=user_id)
@@ -81,7 +90,7 @@ class ChatbotTextView(ChatbotBaseView):
 
             try:
 
-                conversation = self.getOrCreateConversation(conversation_id, user)
+                conversation, shouldAutoUpdateTitle = self.getOrCreateConversation(conversation_id, user)
 
                 messages = []
 
@@ -96,8 +105,11 @@ class ChatbotTextView(ChatbotBaseView):
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
+                conversation_serializer = ConversationUpdateSerializer(conversation)
+
                 response_data = {
-                    'conversation_id': conversation.id,
+                    'conversation': conversation_serializer.data,
                     'messages': messages
                 }
                 return Response(response_data, status=status.HTTP_201_CREATED)
@@ -128,7 +140,7 @@ class ChatbotVoiceView(ChatbotBaseView):
             message_user_type = MessageUserType.USER.value
             message_type = MessageType.AUDIO.value
 
-            conversation = self.getOrCreateConversation(conversation_id, user)
+            conversation, shouldAutoUpdateTitle = self.getOrCreateConversation(conversation_id, user)
 
             messages = []
 
@@ -147,8 +159,11 @@ class ChatbotVoiceView(ChatbotBaseView):
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
+                conversation_serializer = ConversationUpdateSerializer(conversation)
+
                 response_data = {
-                    'conversation_id': conversation.id,
+                    'conversation': conversation_serializer.data,
                     'messages': messages
                 }
                 return Response(response_data, status=status.HTTP_201_CREATED)
@@ -197,6 +212,32 @@ class MessageListView(generics.ListAPIView):
         }
         return Response(response_data)
   
+
+class ConversationUpdateView(generics.UpdateAPIView):
+    parser_classes = [JSONParser]
+    serializer_class = ConversationUpdateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user_id = self.request.user.id
+        conversation_id = self.kwargs['pk']
+        return Conversation.objects.filter(id=conversation_id, user_id=user_id)
+
+
+class ConversationDeleteView(APIView):
+    parser_classes = [JSONParser]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, conversation_id):
+
+        # Delete the conversation that matches both conversation_id and user
+        deleted_count, _ = Conversation.objects.filter(id=conversation_id, user_id=request.user.id).delete()
+
+        if deleted_count == 0:
+            return Response({'message': 'Conversation not found or unauthorized'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'message': 'Conversation deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
 
 class TextToSpeechView(ChatbotBaseView):
     parser_classes = [JSONParser]

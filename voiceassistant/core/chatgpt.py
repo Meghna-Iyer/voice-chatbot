@@ -17,3 +17,18 @@ def getChatGptResponse(input_text):
 
     assistant_reply = response['choices'][0]['message']['content']
     return assistant_reply
+
+def getConversationTitle(input_text):
+    messages = [
+                        {"role": "system", "content": "You are a helpful assistant that generates one appropriate conversation title."},
+                        {"role": "user", "content": input_text},
+            ]
+
+    openai.api_key=os.environ.get("OPENAI_KEY")
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", 
+        messages=messages
+    )
+
+    title = response['choices'][0]['message']['content']
+    return title

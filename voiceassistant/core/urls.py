@@ -2,7 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from .views import ChatbotTextView, ChatbotVoiceView, ConversationListView, MessageListView, TextToSpeechView
+from .views import ChatbotTextView, ChatbotVoiceView, ConversationListView, MessageListView, TextToSpeechView, ConversationUpdateView, ConversationDeleteView
 
 
 app_name = 'core'
@@ -13,6 +13,8 @@ urlpatterns = [
     path('conversations/', ConversationListView.as_view(), name='conversation-list'),
     path('messages/<uuid:conversation_id>/', MessageListView.as_view(), name='message-list'),
     path("text-to-speech/", TextToSpeechView.as_view(), name="text-to-speech"),
+    path('conversation/<uuid:pk>/update/', ConversationUpdateView.as_view(), name='conversation-update'),
+    path('conversation/<uuid:conversation_id>/delete/', ConversationDeleteView.as_view(), name='conversation-delete'),
 ]
 
 if settings.DEBUG:

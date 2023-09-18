@@ -11,6 +11,7 @@ from core.enums import MessageType, MessageUserType
 
 class Conversation(Model, TimeStampedModel, ActivatorModel, TitleSlugDescriptionModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=1000)
 
 
 class Message(Model, TimeStampedModel):

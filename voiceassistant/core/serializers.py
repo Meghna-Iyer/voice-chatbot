@@ -35,6 +35,12 @@ class ConversationListSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ConversationUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conversation
+        fields = ['id', 'title']
+
+
 class MessageSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(default=uuid.uuid4)
     conversation_id = serializers.UUIDField(default=uuid.uuid4)
