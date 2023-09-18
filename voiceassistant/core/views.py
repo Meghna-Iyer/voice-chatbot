@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser
 from django.db import IntegrityError
 from django.db.models import F
+from django.http import Http404
 from .models import Conversation, Message, User
 from .serializers import ConversationTextSerializer, ConversationVoiceSerializer, MessageSerializer, ConversationListSerializer, MessageListSerializer, ConversationUpdateSerializer, TextToSpeechSerializer
 from core.chatgpt import getChatGptResponse, getConversationTitle
@@ -213,7 +214,7 @@ class MessageListView(generics.ListAPIView):
         return Response(response_data)
   
 
-class ConversationUpdateView(generics.UpdateAPIView):
+class ConversationUpdateDeleteView(generics.DestroyAPIView, generics.UpdateAPIView):
     parser_classes = [JSONParser]
     serializer_class = ConversationUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -223,20 +224,18 @@ class ConversationUpdateView(generics.UpdateAPIView):
         conversation_id = self.kwargs['pk']
         return Conversation.objects.filter(id=conversation_id, user_id=user_id)
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        obj = queryset.first()
 
-class ConversationDeleteView(APIView):
-    parser_classes = [JSONParser]
-    permission_classes = [IsAuthenticated]
+        if obj is None:
+            raise Http404("No conversations found")
+        return obj
 
-    def delete(self, request, conversation_id):
-
-        # Delete the conversation that matches both conversation_id and user
-        deleted_count, _ = Conversation.objects.filter(id=conversation_id, user_id=request.user.id).delete()
-
-        if deleted_count == 0:
-            return Response({'message': 'Conversation not found or unauthorized'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response({'message': 'Conversation deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'message': 'Conversations deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class TextToSpeechView(ChatbotBaseView):
