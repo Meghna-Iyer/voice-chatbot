@@ -1,0 +1,475 @@
+{
+	"info": {
+		"_postman_id": "466989cc-a449-4794-9f10-ada104fc68db",
+		"name": "AI Chatbot - FRIDAY",
+		"description": "This contains a collection of API's for the project FRIDAY.  \nIt contains two modules - user and core.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24768449"
+	},
+	"item": [
+		{
+			"name": "user",
+			"item": [
+				{
+					"name": "User register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Meghna\",\n    \"email\": \"meghna@example.com\",\n    \"password\": \"Test@12345\",\n    \"confirm_password\": \"Test@12345\",\n    \"first_name\": \"Meghna\",\n    \"last_name\": \"User\",\n    \"user_type\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/user/register/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"user",
+								"register",
+								""
+							]
+						},
+						"description": "This endpoint is used to register the user into the product"
+					},
+					"response": []
+				},
+				{
+					"name": "User auth token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Megh\",\n    \"password\": \"Test@12345\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/user/auth/token/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"user",
+								"auth",
+								"token",
+								""
+							]
+						},
+						"description": "This can be considered the login endpoint which generates the access token using which the other apis can be accessed."
+					},
+					"response": []
+				},
+				{
+					"name": "User Info",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "http://127.0.0.1:8000/user/info/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"user",
+								"info",
+								""
+							]
+						},
+						"description": "This endpoint is used to list the details of the user"
+					},
+					"response": []
+				},
+				{
+					"name": "User Info Update",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Meghz\",\n    \"last_name\": \"User\",\n    \"lang_preference\": \"en\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/user/update/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"user",
+								"update",
+								""
+							]
+						},
+						"description": "This endpoint is used to update the information pertaining to user. Mainly used for the sake of updation of language preference."
+					},
+					"response": []
+				},
+				{
+					"name": "User refresh token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTY5NTAzMzU5NSwiaWF0IjoxNjk0OTQ3MTk1LCJqdGkiOiI4YzY4NWM3NmIxMjM0MjM2YjQxMmYwNWQxZWY1NzYzZCIsInVzZXJfaWQiOiIzYzUyNDljMC0xMDAzLTRmMjktYmU5Mi1lMjMzZTIwMDM0YTEifQ.RpXjtjntP9vWAid9yn6JKDNtJNTOsfh9a8KUSe2-bpc\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/user/auth/token/refresh/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"user",
+								"auth",
+								"token",
+								"refresh",
+								""
+							]
+						},
+						"description": "The purpose of this endpoint is for regeneration of access token by making use of refresh token."
+					},
+					"response": []
+				}
+			],
+			"description": "This folder contains the list of apis for user."
+		},
+		{
+			"name": "core",
+			"item": [
+				{
+					"name": "Chat Text",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input_text\": \"best country in hockey\",\n    \"conversation_id\": \"83a08ef3-a8dd-4ba1-9696-5f72fda141f8\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/chatbot/text/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"chatbot",
+								"text",
+								""
+							]
+						},
+						"description": "This endpoint is used for the sake of conversation / message creation.  \nInput : Text Based.  \nRequest : conversation_id param is optional \\[ when not passed it is considered to be as a new conversation \\].  \nResponse : This endpoint will list both input and reply \\[ generated by AI model \\] messages in response"
+					},
+					"response": []
+				},
+				{
+					"name": "Chat Voice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "audio",
+									"type": "file",
+									"src": "/Users/mdamal/Desktop/read/bits/sem4/sampleVoice/sample.ogg"
+								},
+								{
+									"key": "conversation_id",
+									"value": "83a08ef3-a8dd-4ba1-9696-5f72fda141f8",
+									"type": "default",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/chatbot/voice/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"chatbot",
+								"voice",
+								""
+							]
+						},
+						"description": "This endpoint is used for the sake of conversation / message creation.  \nInput : Voice Based.  \nRequest : conversation_id param is optional \\[ when not passed it is considered to be as a new conversation \\].  \nResponse : This endpoint will list both input and reply \\[ generated by AI model \\] messages in response"
+					},
+					"response": []
+				},
+				{
+					"name": "ConversationList",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/conversations/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"conversations",
+								""
+							]
+						},
+						"description": "This endpoint is used to list all the conversations for the user"
+					},
+					"response": []
+				},
+				{
+					"name": "Conversation Update",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\" : \"NEWNEW\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/conversation/ab5b8fc5-2a66-4dfb-b7d3-97cfbc1ddde6/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"conversation",
+								"ab5b8fc5-2a66-4dfb-b7d3-97cfbc1ddde6",
+								""
+							]
+						},
+						"description": "This endpoint is used to list all the conversation related data \\[ mainly the title \\]"
+					},
+					"response": []
+				},
+				{
+					"name": "Conversation Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/conversation/ab5b8fc5-2a66-4dfb-b7d3-97cfbc1ddde6/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"conversation",
+								"ab5b8fc5-2a66-4dfb-b7d3-97cfbc1ddde6",
+								""
+							]
+						},
+						"description": "This endpoint is used to delete the conversation based on id"
+					},
+					"response": []
+				},
+				{
+					"name": "MessageList",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/messages/83a08ef3-a8dd-4ba1-9696-5f72fda141f8/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"messages",
+								"83a08ef3-a8dd-4ba1-9696-5f72fda141f8",
+								""
+							]
+						},
+						"description": "This endpoint is used to list all the messages in a conversation for the user"
+					},
+					"response": []
+				},
+				{
+					"name": "Text to speech",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{apiToken}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\" : \"తెలుగు టెక్స్ట్ ను స్పీచ్ లో మార్చండి.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/core/text-to-speech/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"core",
+								"text-to-speech",
+								""
+							]
+						},
+						"description": "This method is used to convert text to speech \\[ audio _base64 \\]"
+					},
+					"response": []
+				}
+			],
+			"description": "This folder contains the list of apis for core logic \\[ conversation creation / message creation / conversation list / message list/ text to speech \\]"
+		}
+	]
+}
