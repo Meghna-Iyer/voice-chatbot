@@ -13,6 +13,8 @@ from core.chatgpt import getChatGptResponse, getConversationTitle
 from core.voice import getTextFromAudio, getAudioFromText
 from core.language import translate
 from core.enums import MessageType, MessageUserType
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class ChatbotBaseView(APIView):
     
@@ -65,10 +67,21 @@ class ChatbotBaseView(APIView):
         if message_serializer.is_valid():
             message_serializer.save()
             data = message_serializer.data
+            self.sendMsgViaWS(conversation.id, data)
             messages.append(data)
         else:
             print(message_serializer.errors)
             raise Exception(message_serializer.errors)
+        
+    def sendMsgViaWS(self, conversation_id, message):
+         channel_layer = get_channel_layer()
+         async_to_sync(channel_layer.group_send)(
+             f"chat_{conversation_id}",
+             {
+                'type': 'chat.message',
+                'message': message
+             }
+         )
 
 
 class ChatbotTextView(ChatbotBaseView):
