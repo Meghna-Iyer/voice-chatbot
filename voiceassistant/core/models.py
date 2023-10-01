@@ -25,7 +25,6 @@ def generate_audio_filename(instance, filename):
     folder_path = os.path.join("audio", f"user_{user_id}", f"conv_{conversation_id}")
     os.makedirs(folder_path, exist_ok=True)
     
-    # Return the full path to the uploaded file, including the folder structure and filename
     return os.path.join(folder_path, f"{unique_filename}_{filename}")
 
 

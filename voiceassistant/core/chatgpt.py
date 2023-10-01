@@ -15,8 +15,6 @@ def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
     else:
         messages.append({"role": "user", "content": input_text})
 
-    print(messages)
-
     openai.api_key=os.environ.get("OPENAI_KEY")
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo", 
