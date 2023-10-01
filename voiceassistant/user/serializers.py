@@ -40,10 +40,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'lang_preference')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'lang_preference', 'use_chat_history')
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'lang_preference')
+        fields = ('first_name', 'last_name', 'lang_preference', 'use_chat_history')

@@ -6,3 +6,4 @@ from django_extensions.db.models import TimeStampedModel
 class User(AbstractUser, TimeStampedModel, Model):
     user_type = user_type = models.PositiveSmallIntegerField()
     lang_preference = models.CharField(default='en', max_length=5)
+    use_chat_history = models.BooleanField(default=False)
