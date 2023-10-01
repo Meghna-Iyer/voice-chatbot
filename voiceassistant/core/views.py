@@ -47,20 +47,22 @@ class ChatbotBaseView(APIView):
         user = User.objects.get(id=user_id)
         return user
 
-
-    def createAndAddMessage(self, conversation, message_type, content, message_user_type, user_id, messages, reference=None):
+    def createAndAddMessage(self, conversation, message_type, content, message_user_type, user_id, messages, reference=None, file_name=None):
         message_data = {
             'conversation_id': conversation.id,
             'type': message_type,
             'content': content,
             'reference': reference,
+            'file_name': file_name,
             'message_user_type': message_user_type,
             'user_id': user_id
         }
 
-        # text messages would not contain reference
-        if reference is None:
+        if MessageType.TEXT.value == message_type:
             del message_data['reference']
+            del message_data['file_name']
+        else:
+            del message_data['content']
         
         message_serializer = MessageSerializer(data=message_data)
 
@@ -139,6 +141,10 @@ class ChatbotVoiceView(ChatbotBaseView):
     parser_classes = [MultiPartParser]
     permission_classes = (IsAuthenticated,)
 
+    def updateContentForAudio(self, messages, content):
+        Message.objects.filter(id=messages[0]["message_id"]).update(content=content)
+        messages[0]["content"] = content
+
     def post(self, request):
         serializer = ConversationVoiceSerializer(data=request.data, context = {'request': request})
 
@@ -159,12 +165,12 @@ class ChatbotVoiceView(ChatbotBaseView):
             messages = []
 
             try:
-                self.createAndAddMessage(conversation, message_type, audio_name, message_user_type, user_id, messages, audio)
+                self.createAndAddMessage(conversation, message_type, None, message_user_type, user_id, messages, audio, audio_name)
 
                 input_text = getTextFromAudio(messages[0]["reference"])['text']
 
-                print(input_text)
-                assistant_reply = getChatGptResponse(input_text, False, user.id, conversation.id)
+                self.updateContentForAudio(messages, input_text)
+                assistant_reply = getChatGptResponse(input_text, user.use_chat_history, user.id, conversation.id)
 
                 translated_response = translate(assistant_reply, dest=language_pref)
 

@@ -42,12 +42,14 @@ class ConversationUpdateSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.Serializer):
+    message_id = serializers.UUIDField(required=False)
     user_id = serializers.UUIDField(default=uuid.uuid4)
     conversation_id = serializers.UUIDField(default=uuid.uuid4)
-    content = serializers.CharField()
+    content = serializers.CharField(required=False)
     type = serializers.ChoiceField(choices=[(m.value, m.name) for m in MessageType])
     message_user_type = serializers.ChoiceField(choices=[(u.value, u.name) for u in MessageUserType])
     reference = serializers.FileField(required=False)
+    file_name = serializers.CharField(required=False)
 
     class Meta:
         model = Message
@@ -62,6 +64,7 @@ class MessageSerializer(serializers.Serializer):
         representation = super().to_representation(instance)
         representation['type'] = MessageType(instance.type).name
         representation['message_user_type'] = MessageUserType(instance.message_user_type).name
+        representation['message_id'] = instance.id
         if 'reference' in representation and instance.reference:
             representation['reference'] = instance.reference.url
         return representation

@@ -17,7 +17,8 @@ class Conversation(Model, TimeStampedModel, ActivatorModel, TitleSlugDescription
 class Message(Model, TimeStampedModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     type = models.PositiveSmallIntegerField(choices=[(m.value, m.name) for m in MessageType])
-    content = models.TextField()
+    content = models.TextField(blank=True)
     reference = models.FileField(upload_to="audio/", blank=True)
     message_user_type = models.PositiveSmallIntegerField(choices=[(u.value, u.name) for u in MessageUserType])
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    file_name = models.TextField(blank=True)
