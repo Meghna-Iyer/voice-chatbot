@@ -110,7 +110,7 @@ class ChatbotTextView(ChatbotBaseView):
 
                 self.createAndAddMessage(conversation, message_type, input_text, message_user_type, user_id, messages)
 
-                assistant_reply = getChatGptResponse(input_text)
+                assistant_reply = getChatGptResponse(input_text, user.use_chat_history, user.id, conversation.id)
 
                 translated_response = translate(assistant_reply, dest=language_pref)
 
@@ -164,7 +164,7 @@ class ChatbotVoiceView(ChatbotBaseView):
                 input_text = getTextFromAudio(messages[0]["reference"])['text']
 
                 print(input_text)
-                assistant_reply = getChatGptResponse(input_text)
+                assistant_reply = getChatGptResponse(input_text, False, user.id, conversation.id)
 
                 translated_response = translate(assistant_reply, dest=language_pref)
 

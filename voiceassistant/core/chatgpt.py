@@ -1,13 +1,21 @@
 import openai
+from .models import Message
+from core.enums import MessageUserType, ChatGPTRoles
 from dotenv import load_dotenv
 import os
 load_dotenv()
 
-def getChatGptResponse(input_text):
-    messages = [
-                        {"role": "system", "content": "You are a helpful assistant that provides concise answers."},
-                        {"role": "user", "content": input_text},
-            ]
+def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
+    messages = [{"role": "system", "content": "You are a helpful assistant that provides concise answers."},]
+    if use_chat_history:
+        db_messages = Message.objects.filter(user_id=user_id, conversation_id=conversation_id).values('content', 'message_user_type').order_by('created')
+        for msg in db_messages:
+            role = ChatGPTRoles.ASSISTANT.value if msg['message_user_type'] == MessageUserType.BOT.value else ChatGPTRoles.USER.value
+            messages.append({"role": role, "content": msg['content']},)
+    else:
+        messages.append({"role": "user", "content": input_text})
+
+    print(messages)
 
     openai.api_key=os.environ.get("OPENAI_KEY")
     response = openai.ChatCompletion.create(

@@ -7,3 +7,7 @@ class MessageType(Enum):
 class MessageUserType(Enum):
     USER = 1
     BOT = 2
+
+class ChatGPTRoles(Enum):
+    ASSISTANT = "assistant"
+    USER = "user"
