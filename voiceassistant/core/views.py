@@ -69,6 +69,8 @@ class ChatbotBaseView(APIView):
         if message_serializer.is_valid():
             message_serializer.save()
             data = message_serializer.data
+            # handle uuid field
+            data['message_id'] = str(data['message_id']) 
             self.sendMsgViaWS(conversation.id, data)
             messages.append(data)
         else:
