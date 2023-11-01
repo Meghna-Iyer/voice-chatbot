@@ -43,7 +43,7 @@ cp env.template .env
 ```
 
 5. Run migrations
-Before running migration install postgres in your local and create Database using this command:
+\n Before running migration install postgres in your local and create Database using this command:
 ```
 CREATE DATABASE chatbot;
 ```
