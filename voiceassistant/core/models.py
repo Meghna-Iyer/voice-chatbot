@@ -23,7 +23,6 @@ def generate_audio_filename(instance, filename):
     unique_filename = uuid4().hex
     
     folder_path = os.path.join("audio", f"user_{user_id}", f"conv_{conversation_id}")
-    os.makedirs(folder_path, exist_ok=True)
     
     return os.path.join(folder_path, f"{unique_filename}_{filename}")
 
