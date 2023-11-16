@@ -41,6 +41,7 @@ pip install -r requirements.txt
 ```
 cp env.template .env
 ```
+Copy the template and fill in all the required environment variables
 
 5. Run migrations
 
@@ -53,12 +54,17 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-6. Run the development server:  
+6. Other prerequisites
+
+- To use ffmpeg in your application for audio processing tasks, you need to have the ffmpeg tool installed on the machine.
+- Websocket functioning requires redis-server to be running
+
+7. Run the development server:  
 ```python
 python manage.py runserver
 ```
 
-The server is accessible in this endpoint - http://localhost:8000
+The server is accessible in this endpoint - http://localhost:8000 
 
 ### API Endpoints
 
