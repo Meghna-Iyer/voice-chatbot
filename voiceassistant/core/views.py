@@ -109,6 +109,7 @@ class ChatbotTextView(ChatbotBaseView):
             try:
 
                 conversation, shouldAutoUpdateTitle = self.getOrCreateConversation(conversation_id, user)
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
 
                 messages = []
 
@@ -123,9 +124,8 @@ class ChatbotTextView(ChatbotBaseView):
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
-                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
+                
                 conversation_serializer = ConversationUpdateSerializer(conversation)
-
                 response_data = {
                     'conversation': conversation_serializer.data,
                     'messages': messages
@@ -172,6 +172,7 @@ class ChatbotVoiceView(ChatbotBaseView):
                 input_text = getTextFromAudio(messages[0]["reference"])['text']
 
                 self.updateContentForAudio(messages, input_text)
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
                 assistant_reply = getChatGptResponse(input_text, user.use_chat_history, user.id, conversation.id)
 
                 translated_response = translate(assistant_reply, dest=language_pref)
@@ -181,9 +182,7 @@ class ChatbotVoiceView(ChatbotBaseView):
 
                 self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
-                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
                 conversation_serializer = ConversationUpdateSerializer(conversation)
-
                 response_data = {
                     'conversation': conversation_serializer.data,
                     'messages': messages

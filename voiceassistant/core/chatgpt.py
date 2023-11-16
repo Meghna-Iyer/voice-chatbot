@@ -25,16 +25,24 @@ def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
     return assistant_reply
 
 def getConversationTitle(input_text):
-    messages = [
-                        {"role": "system", "content": "You are a helpful assistant that generates one appropriate conversation title."},
-                        {"role": "user", "content": input_text},
-            ]
+    try:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that generates one appropriate conversation title."},
+            {"role": "user", "content": input_text},
+        ]
 
-    openai.api_key=os.environ.get("OPENAI_KEY")
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", 
-        messages=messages
-    )
+        openai.api_key = os.environ.get("OPENAI_KEY")
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo", 
+            messages=messages
+        )
 
-    title = response['choices'][0]['message']['content']
-    return title
+        title = response['choices'][0]['message']['content'].strip('"')
+        return title
+
+    except Exception as e:
+        # Log the error or handle it in a way that suits your application
+        print(f"Error: {e}")
+
+        # Return a default title or handle the error as needed
+        return "Conversation With FRIDAY"
