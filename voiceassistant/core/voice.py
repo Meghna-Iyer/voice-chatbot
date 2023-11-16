@@ -4,7 +4,7 @@ from gtts import gTTS
 from io import BytesIO
 from django.conf import settings
 
-# Model downloaded and stored in project directory [change name of model if needed]
+# Model downloaded and stored in project directory [change as whisper.load_model("medium")]
 model = whisper.load_model(str(settings.BASE_DIR) + "/medium.pt")
 
 
