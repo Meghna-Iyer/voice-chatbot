@@ -15,6 +15,7 @@ from core.language import translate
 from core.enums import MessageType, MessageUserType
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import threading
 
 class ChatbotBaseView(APIView):
     
@@ -86,6 +87,25 @@ class ChatbotBaseView(APIView):
                 'message': message
              }
          )
+    
+    def process_bot_response(self, input_text, conversation, messages, user):
+        language_pref = user.lang_preference
+        user_id = user.id
+        use_chat_history = user.use_chat_history
+        conversation_id = conversation.id
+
+        try:
+            
+            assistant_reply = getChatGptResponse(input_text, use_chat_history, user_id, conversation_id)
+            translated_response = translate(assistant_reply, dest=language_pref)
+            
+            message_user_type = MessageUserType.BOT.value
+            message_type = MessageType.TEXT.value
+
+            self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
+
+        except Exception as e:
+            print(f"Error in async_process_bot_response: {str(e)}")
 
 
 class ChatbotTextView(ChatbotBaseView):
@@ -101,30 +121,25 @@ class ChatbotTextView(ChatbotBaseView):
             user = self.getUser(user_id)
             input_text = serializer.validated_data['input_text']
             conversation_id = serializer.validated_data.get('conversation_id')
-            language_pref = user.lang_preference
 
             message_user_type = MessageUserType.USER.value
             message_type = MessageType.TEXT.value
 
             try:
 
-                conversation, shouldAutoUpdateTitle = self.getOrCreateConversation(conversation_id, user)
-                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
+                conversation, isNewConversation = self.getOrCreateConversation(conversation_id, user)
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, isNewConversation)
 
                 messages = []
 
                 self.createAndAddMessage(conversation, message_type, input_text, message_user_type, user_id, messages)
 
-                assistant_reply = getChatGptResponse(input_text, user.use_chat_history, user.id, conversation.id)
+                if isNewConversation:
+                    self.process_bot_response(input_text, conversation, messages, user)
+                else:  
+                    thread = threading.Thread(target=self.process_bot_response, args=(input_text, conversation, messages, user))
+                    thread.start()
 
-                translated_response = translate(assistant_reply, dest=language_pref)
-
-                message_user_type = MessageUserType.BOT.value
-                message_type = MessageType.TEXT.value
-
-                self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
-
-                
                 conversation_serializer = ConversationUpdateSerializer(conversation)
                 response_data = {
                     'conversation': conversation_serializer.data,
@@ -156,13 +171,12 @@ class ChatbotVoiceView(ChatbotBaseView):
             user = self.getUser(user_id)
             audio = serializer.validated_data['audio']
             conversation_id = serializer.validated_data.get('conversation_id')
-            language_pref = user.lang_preference
             audio_name = audio.name
 
             message_user_type = MessageUserType.USER.value
             message_type = MessageType.AUDIO.value
 
-            conversation, shouldAutoUpdateTitle = self.getOrCreateConversation(conversation_id, user)
+            conversation, isNewConversation = self.getOrCreateConversation(conversation_id, user)
 
             messages = []
 
@@ -172,15 +186,13 @@ class ChatbotVoiceView(ChatbotBaseView):
                 input_text = getTextFromAudio(messages[0]["reference"])['text']
 
                 self.updateContentForAudio(messages, input_text)
-                conversation = self.getUpdatedConversation(conversation, user_id, input_text, shouldAutoUpdateTitle)
-                assistant_reply = getChatGptResponse(input_text, user.use_chat_history, user.id, conversation.id)
+                conversation = self.getUpdatedConversation(conversation, user_id, input_text, isNewConversation)
 
-                translated_response = translate(assistant_reply, dest=language_pref)
-
-                message_user_type = MessageUserType.BOT.value
-                message_type = MessageType.TEXT.value
-
-                self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
+                if isNewConversation:
+                    self.process_bot_response(input_text, conversation, messages, user)
+                else:  
+                    thread = threading.Thread(target=self.process_bot_response, args=(input_text, conversation, messages, user))
+                    thread.start()
 
                 conversation_serializer = ConversationUpdateSerializer(conversation)
                 response_data = {
