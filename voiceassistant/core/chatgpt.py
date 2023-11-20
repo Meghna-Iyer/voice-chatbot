@@ -9,7 +9,7 @@ load_dotenv()
 def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
     messages = [{"role": "system", "content": "You are a helpful assistant that provides concise answers."},]
     if use_chat_history:
-        db_messages = Message.objects.filter(user_id=user_id, conversation_id=conversation_id).values('content', 'message_user_type').order_by('created')
+        db_messages = Message.objects.filter(user_id=user_id, conversation_id=conversation_id).values('content', 'message_user_type').order_by('-created')[:10][::-1]
         for msg in db_messages:
             role = ChatGPTRoles.ASSISTANT.value if msg['message_user_type'] == MessageUserType.BOT.value else ChatGPTRoles.USER.value
             messages.append({"role": role, "content": msg['content']},)
