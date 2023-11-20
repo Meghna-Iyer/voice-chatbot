@@ -3,6 +3,7 @@ from .models import Message
 from core.enums import MessageUserType, ChatGPTRoles
 from dotenv import load_dotenv
 import os
+import concurrent.futures
 load_dotenv()
 
 def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
@@ -16,13 +17,14 @@ def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
         messages.append({"role": "user", "content": input_text})
 
     openai.api_key=os.environ.get("OPENAI_KEY")
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", 
-        messages=messages
-    )
-
-    assistant_reply = response['choices'][0]['message']['content']
-    return assistant_reply
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(openai.ChatCompletion.create, model="gpt-3.5-turbo", messages=messages)
+        try:
+            response = future.result(timeout=20)
+            assistant_reply = response['choices'][0]['message']['content']
+            return assistant_reply
+        except concurrent.futures.TimeoutError:
+            raise TimeoutError("Timeout occurred while waiting for the response.")
 
 def getConversationTitle(input_text):
     try:

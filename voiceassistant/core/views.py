@@ -104,8 +104,10 @@ class ChatbotBaseView(APIView):
 
             self.createAndAddMessage(conversation, message_type, translated_response, message_user_type, user_id, messages)
 
+        except TimeoutError as e:
+            print(f"TimeoutError in process_bot_response: {str(e)}")
         except Exception as e:
-            print(f"Error in async_process_bot_response: {str(e)}")
+            print(f"Error in process_bot_response: {str(e)}")
 
 
 class ChatbotTextView(ChatbotBaseView):
