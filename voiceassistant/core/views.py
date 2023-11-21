@@ -97,6 +97,7 @@ class ChatbotBaseView(APIView):
         try:
             
             assistant_reply = getChatGptResponse(input_text, use_chat_history, user_id, conversation_id)
+            print("Processing done for openai api")
             translated_response = translate(assistant_reply, dest=language_pref)
             
             message_user_type = MessageUserType.BOT.value

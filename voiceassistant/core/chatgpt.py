@@ -16,11 +16,12 @@ def getChatGptResponse(input_text, use_chat_history, user_id, conversation_id):
     else:
         messages.append({"role": "user", "content": input_text})
 
+    print("Invoking openai completion api")
     openai.api_key=os.environ.get("OPENAI_KEY")
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(openai.ChatCompletion.create, model="gpt-3.5-turbo", messages=messages)
         try:
-            response = future.result(timeout=20)
+            response = future.result(timeout=150)
             assistant_reply = response['choices'][0]['message']['content']
             return assistant_reply
         except concurrent.futures.TimeoutError:
