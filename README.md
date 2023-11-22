@@ -74,5 +74,9 @@ The api endpoints are stored as a json collection in the root directory.
 
 The api documentation is accessible through swagger and also in postman collection documentation.
 
+## Demo
+
+https://drive.google.com/file/d/1Cn-khDueir6K5idboomwlbCx_Tx79ot1/view?usp=drive_link
+
 ## Maintainer:
 - Meghna Iyer D L <2021mt93670@wilp.bits-pilani.ac.in>
